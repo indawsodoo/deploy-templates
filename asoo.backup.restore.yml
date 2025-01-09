@@ -4,6 +4,7 @@ script:
     sudo: true
     commands:
       - 'rm -fr {bck_workspace}*'
+      - 'aws configure set endpoint_url {STORAGE_ENDPOINT}'
       - 'aws configure set aws_access_key_id {STORAGE_ACCESS_KEY}'
       - 'aws configure set aws_secret_access_key {STORAGE_SECRET_KEY}'
       - 'aws s3 cp s3://{storage_name}/{object_key} {bck_dir}/{object_short_key} --region {STORAGE_REGION}'
@@ -17,7 +18,7 @@ script:
     description: 'Restoring PostgreSQL dump'
     sudo: true
     commands:
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d postgres -t -c "CREATE DATABASE {database}"'
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d postgres -t -c "CREATE DATABASE \"{database}\""'
       - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} < {bck_dir}/{object_short}/dump.sql'
       - 'rm -fr {bck_dir}/{object_short}/dump.sql'
   filestore:
