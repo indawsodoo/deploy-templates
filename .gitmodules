@@ -166,3 +166,7 @@
 	path = addons/OCA-17.0/bank-payment
 	url = https://github.com/OCA/bank-payment
 	branch = 17.0
+[submodule "addons/indawsodoo-17.0/asoo-tools"]
+	path = addons/indawsodoo-17.0/asoo-tools
+	url = git@github.com:indawsodoo/asoo-tools.git
+	branch = 17.0
