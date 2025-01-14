@@ -166,10 +166,6 @@
 	path = addons/design-themes-15.0
 	url = https://github.com/odoo/design-themes.git
 	branch = 15.0
-[submodule "addons/asoo-tools-15.0"]
-	path = addons/asoo-tools-15.0
-	url = git@github.com:indawsodoo/asoo-tools.git
-	branch = 15.0
 [submodule "addons/indawsodoo-15.0/asoo-tools"]
 	path = addons/indawsodoo-15.0/asoo-tools
 	url = git@github.com:indawsodoo/asoo-tools.git
