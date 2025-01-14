@@ -170,3 +170,23 @@
 	path = addons/indawsodoo-15.0/asoo-tools
 	url = git@github.com:indawsodoo/asoo-tools.git
 	branch = 15.0
+[submodule "addons/OCA-15.0/survey"]
+	path = addons/OCA-15.0/survey
+	url = https://github.com/OCA/survey.git
+	branch = 15.0
+[submodule "addons/OCA-15.0/crm"]
+	path = addons/OCA-15.0/crm
+	url = https://github.com/OCA/crm.git
+	branch = 15.0
+[submodule "addons/OCA-15.0/currency"]
+	path = addons/OCA-15.0/currency
+	url = https://github.com/OCA/currency.git
+	branch = 15.0
+[submodule "addons/OCA-15.0/project"]
+	path = addons/OCA-15.0/project
+	url = https://github.com/OCA/project.git
+	branch = 15.0
+[submodule "addons/OCA-15.0/mis-builder"]
+	path = addons/OCA-15.0/mis-builder
+	url = https://github.com/OCA/mis-builder.git
+	branch = 15.0
