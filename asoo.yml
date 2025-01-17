@@ -1,3 +1,7 @@
+deploy_info:
+  private_submodules:
+    - git@github.com:indawsodoo/asoo-tools.git
+
 server_setup:
   update:
     sudo: true
