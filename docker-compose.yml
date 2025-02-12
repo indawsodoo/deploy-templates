@@ -1,6 +1,6 @@
 services:
   web:
-    image: indaws/odoo:15.0
+    image: indaws/odoo:14.0
     restart: always
     depends_on:
       - db
