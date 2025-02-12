@@ -1,0 +1,4 @@
+[submodule "addons/indawsodoo-14.0/asoo-tools"]
+	path = addons/indawsodoo-14.0/asoo-tools
+	url = git@github.com:indawsodoo/asoo-tools.git
+	branch = 14.0
