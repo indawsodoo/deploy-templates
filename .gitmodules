@@ -190,3 +190,7 @@
 	path = addons/indawsodoo-16.0/asoo-tools
 	url = git@github.com:indawsodoo/asoo-tools.git
 	branch = 16.0
+[submodule "addons/indawsodoo-16.0/enterprise"]
+	path = addons/indawsodoo-16.0/enterprise
+	url = git@github.com:indawsodoo/enterprise.git
+	branch = 16.0
