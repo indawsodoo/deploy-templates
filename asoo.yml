@@ -1,8 +1,8 @@
 deploy_info:
   private_submodules:
     - git@github.com:indawsodoo/asoo-tools.git
-    - git@github.com:indawsodoo/indaws-addons.git
-    - git@github.com:indawsodoo/indaws-addons-enterprise.git
+    - git@github.com:indawsodoo/indaws-odoo.git
+    - git@github.com:indawsodoo/indaws-odoo-enterprise.git
     - git@github.com:indawsodoo/enterprise.git
 
 server_setup:
