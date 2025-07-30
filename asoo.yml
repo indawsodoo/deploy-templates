@@ -1,31 +1,19 @@
 deploy_info:
   private_submodules:
+    - git@github.com:indawsodoo/enterprise.git
     - git@github.com:indawsodoo/asoo-tools.git
     - git@github.com:indawsodoo/indaws-odoo.git
     - git@github.com:indawsodoo/indaws-odoo-enterprise.git
-    - git@github.com:indawsodoo/enterprise.git
 
 server_setup:
   update:
     sudo: true
     commands:
       - 'apt update'
-  git:
+  essentials:
     sudo: true
     commands:
-      - 'apt -y install git'
-  curl:
-    sudo: true
-    commands:
-      - 'apt -y install curl'
-  zip:
-    sudo: true
-    commands:
-      - 'apt -y install zip'
-  unzip:
-    sudo: true
-    commands:
-      - 'apt -y install unzip'
+      - 'apt -y install git curl zip unzip'
   aws:
     sudo: true
     commands:
@@ -45,6 +33,12 @@ server_setup:
     commands:
       - 'curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose'
       - 'chmod +x /usr/local/bin/docker-compose'
+  asoo-cli:
+    sudo: true
+    commands:
+      - 'git clone https://github.com/indawsodoo/asoo-cli.git /opt/asoo-cli'
+      - 'cd /opt/asoo-cli'
+      - 'pip install -e . --break-system-packages'
   workspace-chmod:
     sudo: true
     commands:
@@ -54,9 +48,7 @@ environment_info:
   application: 'odoo'
   application_version: '18.0'
   application_service: 'web'
-  application_container_user: '0'
-  git_submodule_path: 'addons'
-  addons_dir: '/mnt'
+  submodule_path: 'src'
   nginx_service: 'web'
   nginx_virtual_port: '8069'
   odoo_config: 'config/odoo.conf'
@@ -66,18 +58,3 @@ environment_info:
     - 'config/odoo.conf'
   rebuild_files:
     - 'docker-compose.yml'
-
-environment_test_info:
-  test_mute: true
-  test_error_regex: '^(?:\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ (?:ERROR|CRITICAL) )|(?:Traceback \(most recent call last\):)$'
-  test_warn_regex: '^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ WARNING '
-  script_test:
-    service: 'web'
-    commands:
-      - 'odoo --test-enable -c /etc/odoo/odoo-test.conf --log-level=test --stop-after-init -i base'
-  script_after:
-    sudo: true
-    commands:
-      - 'docker-compose stop web'
-      - 'docker-compose exec -T db dropdb -U odoo odoo-test'
-      - 'docker-compose start web'
