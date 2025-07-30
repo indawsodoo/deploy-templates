@@ -5,8 +5,6 @@ services:
     restart: none
     ports:
       - '8069:8069'
-    volumes:
-      - './odoo:/odoo'
     environment:
       - PGUSER=odoo
       - PGPASSWORD=odoo

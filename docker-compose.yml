@@ -12,6 +12,8 @@ services:
       - './config:/etc/odoo/base'
       - './src/odoo:/home/odoo/odoo'
       - './src/addons:/home/odoo/addons'
+      - './src/apt-packages:/home/odoo/apt-packages'
+      - './src/scripts:/home/odoo/scripts'
     environment:
       - PGUSER=odoo
       - PGPASSWORD=${password('postgres')}
