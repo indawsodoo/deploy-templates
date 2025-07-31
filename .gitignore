@@ -2,4 +2,5 @@
 */.ipynb_checkpoints/*
 .vscode
 .repositories.yml
-/src/
+/src/addons/
+/src/odoo/
