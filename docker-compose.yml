@@ -9,6 +9,7 @@ services:
       - '8072'
     volumes:
       - 'odoo-data:/var/lib/odoo'
+      - 'odoo-local:/home/odoo/.local'
       - './config:/etc/odoo/base'
       - './src/odoo:/home/odoo/odoo'
       - './src/addons:/home/odoo/addons'
@@ -49,3 +50,4 @@ services:
 volumes:
   postgres-data: null
   odoo-data: null
+  odoo-local: null
