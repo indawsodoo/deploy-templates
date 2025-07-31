@@ -2,7 +2,7 @@ repositories:
 - path: src/odoo
   url: https://github.com/odoo/odoo.git
   branch: '18.0'
-  commit: 5697493e0091559440b28f50bd3ad443a0ba35ec
+  commit: d524109e8a330534336db449441d2dd8778c9bb9
   depth: 1
 - path: src/addons/OCA-18.0/account-analytic
   url: https://github.com/OCA/account-analytic.git
@@ -42,7 +42,7 @@ repositories:
 - path: src/addons/OCA-18.0/account-payment
   url: https://github.com/OCA/account-payment.git
   branch: '18.0'
-  commit: 1cf16f54486a22c980dc58d0b1ae3d36cd4e2e34
+  commit: f0f92a5a059a927f03c98ef9c54d4e6815064887
   depth: 1
 - path: src/addons/OCA-18.0/account-reconcile
   url: https://github.com/OCA/account-reconcile.git
@@ -52,12 +52,12 @@ repositories:
 - path: src/addons/OCA-18.0/bank-payment
   url: https://github.com/OCA/bank-payment.git
   branch: '18.0'
-  commit: 6ad2187c278ab83151355ea7c1d5414dd1130578
+  commit: 0e85f61034f2e9b8686535514a4abd445ed35ff8
   depth: 1
 - path: src/addons/OCA-18.0/bank-statement-import
   url: https://github.com/OCA/bank-statement-import.git
   branch: '18.0'
-  commit: a2285f1d627c1ab3c0c9f6f639c9701d77c29c22
+  commit: ae458fe17dca15f5f66e2404238e745966a3f340
   depth: 1
 - path: src/addons/OCA-18.0/commission
   url: https://github.com/OCA/commission.git
@@ -82,7 +82,7 @@ repositories:
 - path: src/addons/OCA-18.0/edi
   url: https://github.com/OCA/edi.git
   branch: '18.0'
-  commit: 2a3b132c28b02c30253e13cedbd573459c8e4144
+  commit: 69573eec52c859edd0da17a949281195fdd3f8bc
   depth: 1
 - path: src/addons/OCA-18.0/event
   url: https://github.com/OCA/event.git
@@ -92,7 +92,7 @@ repositories:
 - path: src/addons/OCA-18.0/l10n-spain
   url: https://github.com/OCA/l10n-spain.git
   branch: '18.0'
-  commit: 8621a0f8c95147181cdad7cb0504122cc655c962
+  commit: 8580ef2f9d1f3ea0aa632cb772bebcf1e38dfafd
   depth: 1
 - path: src/addons/OCA-18.0/manufacture
   url: https://github.com/OCA/manufacture.git
@@ -102,7 +102,7 @@ repositories:
 - path: src/addons/OCA-18.0/multi-company
   url: https://github.com/OCA/multi-company.git
   branch: '18.0'
-  commit: a1ffbd537a33bd2f2bb174c0b8b59d193e81b79f
+  commit: 5895cf1a53afbf48e81b55d95e174bef75ca2ea3
   depth: 1
 - path: src/addons/OCA-18.0/partner-contact
   url: https://github.com/OCA/partner-contact.git
@@ -127,7 +127,7 @@ repositories:
 - path: src/addons/OCA-18.0/purchase-workflow
   url: https://github.com/OCA/purchase-workflow.git
   branch: '18.0'
-  commit: 0b84d6fba6f0bd1545ce45a0552d4973b0448b11
+  commit: bf0bc65749e1fb66e72d61144a22a54715481481
   depth: 1
 - path: src/addons/OCA-18.0/queue
   url: https://github.com/OCA/queue.git
@@ -147,7 +147,7 @@ repositories:
 - path: src/addons/OCA-18.0/sale-workflow
   url: https://github.com/OCA/sale-workflow.git
   branch: '18.0'
-  commit: 03beaf2c097c801d0c68d08227e6d88a529268de
+  commit: 4e610f3aa72dcd7e05495f4ded42c73d2eb914c9
   depth: 1
 - path: src/addons/OCA-18.0/server-env
   url: https://github.com/OCA/server-env.git
@@ -162,7 +162,7 @@ repositories:
 - path: src/addons/OCA-18.0/server-ux
   url: https://github.com/OCA/server-ux.git
   branch: '18.0'
-  commit: 9a393619fc408c2c483dc91fd20c46339d22cd03
+  commit: b84e66a4267e5e82fcc704c8a797cee4f4ff31e0
   depth: 1
 - path: src/addons/OCA-18.0/social
   url: https://github.com/OCA/social.git
@@ -187,7 +187,7 @@ repositories:
 - path: src/addons/OCA-18.0/stock-logistics-workflow
   url: https://github.com/OCA/stock-logistics-workflow.git
   branch: '18.0'
-  commit: 85362dc3bddedbddcf30f312b13721be5ea69ed1
+  commit: 2530cdad322a5ac5a48b7d55a610a0765de392ce
   depth: 1
 - path: src/addons/OCA-18.0/timesheet
   url: https://github.com/OCA/timesheet.git
@@ -197,7 +197,7 @@ repositories:
 - path: src/addons/OCA-18.0/web
   url: https://github.com/OCA/web.git
   branch: '18.0'
-  commit: f3cd429b91a64c49ee5c188bb5dd24693d85d0fb
+  commit: 61dc78fb1f248df8556c6029172f8970e341819f
   depth: 1
 - path: src/addons/OCA-18.0/web-api
   url: https://github.com/OCA/web-api.git
@@ -247,7 +247,7 @@ repositories:
 - path: src/addons/indawsodoo-18.0/enterprise
   url: git@github.com:indawsodoo/enterprise.git
   branch: '18.0'
-  commit: e47564513f396a578aceffe1d6d8b7b196a1ba33
+  commit: 877a0f80cb57011e4c32ef728c06c9ce1bfb8333
   depth: 1
 - path: src/addons/indawsodoo-18.0/indaws-odoo
   url: git@github.com:indawsodoo/indaws-odoo.git

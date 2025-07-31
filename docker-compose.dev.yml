@@ -6,6 +6,7 @@ services:
     ports:
       - '8069:8069'
     environment:
+      - DEBUGPY=true
       - PGUSER=odoo
       - PGPASSWORD=odoo
       - PGHOST=db
