@@ -1,0 +1,106 @@
+networks:
+  traefik-net:
+    external: true
+
+services:
+  web:
+    networks:
+    - traefik-net
+    labels:
+      - "traefik.enable=true"
+{% for host in hosts %}
+      # ------------------------------------------------------------------------
+{%- if host['redirect'] %}
+      # ${host['name']} -> ${host['redirect']}
+{%- else %}
+      # ${host['name']}
+{%- endif %}
+      # ------------------------------------------------------------------------
+{% if not host['redirect'] %}
+{%- if host['ip_whitelist'] %}
+      # router - 403 access denied
+      {% set ip_whitelist = host['ip_whitelist'].split(",") %}
+      {% set ip_rules = [] %}
+      {% for ip in ip_whitelist %}
+        {% set _ = ip_rules.append("!ClientIP(`%s`)" % ip.strip()) %}
+      {% endfor %}
+      - "traefik.http.routers.${host['ip_middleware']}.rule=Host(`${host['name']}`) && ${" && ".join(ip_rules)}"
+      - "traefik.http.routers.${host['ip_middleware']}.entrypoints=websecure"
+      - "traefik.http.routers.${host['ip_middleware']}.service=forbidden-service@docker"
+      - "traefik.http.routers.${host['ip_middleware']}.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['ip_middleware']}.middlewares=add-forbidden-header@docker"
+      - "traefik.http.routers.${host['ip_middleware']}.priority=200"
+{% endif %}
+      # router - /mail/attachment/upload - 2GB
+      - "traefik.http.routers.odoo-mail-upload-https.rule=Host(`${host['name']}`) && PathPrefix(`/mail/attachment/upload`)"
+      - "traefik.http.routers.odoo-mail-upload-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-mail-upload-https.service=odoo"
+      - "traefik.http.routers.odoo-mail-upload-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-mail-upload-https.middlewares=gzip,sslheader,mem-limit,limit-2gb"
+      - "traefik.http.routers.odoo-mail-upload-https.priority=110"
+
+      # router - /web/database/restore - Sin límite
+      - "traefik.http.routers.odoo-db-restore-https.rule=Host(`${host['name']}`) && PathPrefix(`/web/database/restore`)"
+      - "traefik.http.routers.odoo-db-restore-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-db-restore-https.service=odoo"
+      - "traefik.http.routers.odoo-db-restore-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-db-restore-https.middlewares=gzip,sslheader,mem-limit,limit-unlimited"
+      - "traefik.http.routers.odoo-db-restore-https.priority=105"
+
+      # router - /documents/upload - 5GB
+      - "traefik.http.routers.odoo-docs-upload-https.rule=Host(`${host['name']}`) && PathPrefix(`/documents/upload`)"
+      - "traefik.http.routers.odoo-docs-upload-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-docs-upload-https.service=odoo"
+      - "traefik.http.routers.odoo-docs-upload-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-docs-upload-https.middlewares=gzip,sslheader,mem-limit,limit-5gb"
+      - "traefik.http.routers.odoo-docs-upload-https.priority=100"
+
+      # router - websocket
+      - "traefik.http.routers.odoo-im-https.rule=Host(`${host['name']}`) && PathPrefix(`/websocket`)"
+      - "traefik.http.routers.odoo-im-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-im-https.service=odoo-im"
+      - "traefik.http.routers.odoo-im-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-im-https.middlewares=gzip,sslheader,mem-limit,limit"
+      - "traefik.http.routers.odoo-im-https.priority=75"
+
+      # router - main
+      - "traefik.http.routers.odoo-https.rule=Host(`${host['name']}`)"
+      - "traefik.http.routers.odoo-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-https.service=odoo"
+      - "traefik.http.routers.odoo-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-https.middlewares=gzip,sslheader,mem-limit,limit"
+      - "traefik.http.routers.odoo-https.priority=50"
+{%- else %}
+      # redirection
+      - "traefik.http.routers.odoo-redirect-https.rule=Host(`${host['name']}`)"
+      - "traefik.http.routers.odoo-redirect-https.entrypoints=websecure"
+      - "traefik.http.routers.odoo-redirect-https.service=odoo"
+      - "traefik.http.routers.odoo-redirect-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.odoo-redirect-https.middlewares=${host['redirect_middleware']}"
+      - "traefik.http.routers.odoo-redirect-https.priority=200"
+
+      # redirect middleware
+      - "traefik.http.middlewares.${host['redirect_middleware']}.redirectregex.regex=^https?://${host['name']}(.*)"
+      - "traefik.http.middlewares.${host['redirect_middleware']}.redirectregex.replacement=https://${host['redirect']}$${1}"
+      - "traefik.http.middlewares.${host['redirect_middleware']}.redirectregex.permanent=true"
+{%- endif %}
+{% endfor %}
+      # ------------------------------------------------------------------------
+      # Other traefik configurations
+      # ------------------------------------------------------------------------
+
+      # services
+      - "traefik.http.services.odoo.loadbalancer.server.port=8069"
+      - "traefik.http.services.odoo-im.loadbalancer.server.port=8072"
+      - "traefik.docker.network=traefik-net"
+
+      # various middlewares
+      - "traefik.http.middlewares.gzip.compress=true"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+
+      # body size limit middlewares
+      - "traefik.http.middlewares.mem-limit.buffering.memRequestBodyBytes=20971520"
+      - "traefik.http.middlewares.limit.buffering.maxRequestBodyBytes=157286400"
+      - "traefik.http.middlewares.limit-2gb.buffering.maxRequestBodyBytes=2147483648"
+      - "traefik.http.middlewares.limit-5gb.buffering.maxRequestBodyBytes=5368709120"
+      - "traefik.http.middlewares.limit-unlimited.buffering.maxRequestBodyBytes=0"

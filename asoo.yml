@@ -1,4 +1,6 @@
 deploy_info:
+  traefik_repository: 'https://github.com/indawsodoo/asoo-traefik.git'
+  traefik_network: 'traefik-net'
   private_submodules:
     - git@github.com:indawsodoo/enterprise.git
     - git@github.com:indawsodoo/asoo-tools.git
@@ -50,8 +52,6 @@ environment_info:
   application_version: '18.0'
   application_service: 'web'
   submodule_path: 'src/addons'
-  nginx_service: 'web'
-  nginx_virtual_port: '8069'
   odoo_config: 'config/odoo.conf'
   workspace: '/opt/${object.server_id.technical_name}-${object.name}-${object.id}'
   process_files:
