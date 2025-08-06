@@ -36,7 +36,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.service=odoo"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.tls.certresolver=ssl-resolver"
-      - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.middlewares=gzip,sslheader,mem-limit,limit-2gb"
+      - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-2gb"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.priority=110"
 
       # router - /web/database/restore - Sin límite
@@ -44,7 +44,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.service=odoo"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.tls.certresolver=ssl-resolver"
-      - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.middlewares=gzip,sslheader,mem-limit,limit-unlimited"
+      - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-unlimited"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.priority=105"
 
       # router - /documents/upload - 5GB
@@ -52,7 +52,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.service=odoo"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.tls.certresolver=ssl-resolver"
-      - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.middlewares=gzip,sslheader,mem-limit,limit-5gb"
+      - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-5gb"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.priority=100"
 
       # router - websocket
@@ -60,7 +60,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.service=odoo-im"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.tls.certresolver=ssl-resolver"
-      - "traefik.http.routers.${host['middleware']}-odoo-im-https.middlewares=gzip,sslheader,mem-limit,limit"
+      - "traefik.http.routers.${host['middleware']}-odoo-im-https.middlewares=gzip,sslheader,hsts,mem-limit,limit"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.priority=75"
 
       # router - main
@@ -68,7 +68,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-https.service=odoo"
       - "traefik.http.routers.${host['middleware']}-odoo-https.tls.certresolver=ssl-resolver"
-      - "traefik.http.routers.${host['middleware']}-odoo-https.middlewares=gzip,sslheader,mem-limit,limit"
+      - "traefik.http.routers.${host['middleware']}-odoo-https.middlewares=gzip,sslheader,hsts,mem-limit,limit"
       - "traefik.http.routers.${host['middleware']}-odoo-https.priority=50"
 {%- else %}
       # redirection
@@ -97,6 +97,11 @@ services:
       # various middlewares
       - "traefik.http.middlewares.gzip.compress=true"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.hsts.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.hsts.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.hsts.headers.stsPreload=true"
+      - "traefik.http.middlewares.hsts.headers.forceSTSHeader=true"
+
 
       # body size limit middlewares
       - "traefik.http.middlewares.mem-limit.buffering.memRequestBodyBytes=20971520"
