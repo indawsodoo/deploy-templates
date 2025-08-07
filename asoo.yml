@@ -1,6 +1,13 @@
 deploy_info:
-  traefik_repository: 'https://github.com/indawsodoo/asoo-traefik.git'
-  traefik_network: 'traefik-net'
+  traefik:
+    repository: 'https://github.com/indawsodoo/asoo-traefik.git'
+    branch: 'master'
+    network: 'traefik-net'
+  jupyterlab:
+    repository: 'https://github.com/indawsodoo/asoo-jupyterlab.git'
+    branch: 'traefik'
+    port: '5000'
+    network: 'traefik-net'
   private_submodules:
     - git@github.com:indawsodoo/enterprise.git
     - git@github.com:indawsodoo/asoo-tools.git
