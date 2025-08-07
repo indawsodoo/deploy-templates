@@ -15,6 +15,7 @@ services:
       - './src/addons:/home/odoo/addons'
       - './src/apt-packages:/home/odoo/apt-packages'
       - './src/scripts:/home/odoo/scripts'
+      - './src/geoip:/home/odoo/geoip'
       - './src/requirements:/home/odoo/requirements'
     environment:
       - PGUSER=odoo

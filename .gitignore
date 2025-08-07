@@ -4,3 +4,8 @@
 .repositories.yml
 /src/addons/
 /src/odoo/
+/src/geoip/geoip.log
+/src/geoip/GeoLite2-City.mmdb
+/src/geoip/GeoLite2-Country.mmdb
+/src/geoip/GeoLite2-City.mmdb.new
+/src/geoip/GeoLite2-Country.mmdb.new
