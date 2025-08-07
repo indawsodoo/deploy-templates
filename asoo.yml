@@ -41,7 +41,7 @@ server_setup:
       - 'rm -dfr /opt/asoo-cli'
       - 'git clone https://github.com/indawsodoo/asoo-cli.git /opt/asoo-cli'
       - 'cd /opt/asoo-cli'
-      - 'pip install -e . --break-system-packages'
+      - 'pip3 install -e . --break-system-packages'
   workspace-chmod:
     sudo: true
     commands:
