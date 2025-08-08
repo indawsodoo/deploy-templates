@@ -27,7 +27,7 @@ services:
       - "traefik.http.routers.${host['ip_middleware']}.rule=Host(`${host['name']}`) && ${" && ".join(ip_rules)}"
       - "traefik.http.routers.${host['ip_middleware']}.entrypoints=websecure"
       - "traefik.http.routers.${host['ip_middleware']}.service=forbidden-service@docker"
-      - "traefik.http.routers.${host['ip_middleware']}.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['ip_middleware']}.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['ip_middleware']}.middlewares=add-forbidden-header@docker"
       - "traefik.http.routers.${host['ip_middleware']}.priority=200"
 {% endif %}
@@ -35,7 +35,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.rule=Host(`${host['name']}`) && PathPrefix(`/mail/attachment/upload`)"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.service=odoo"
-      - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-2gb"
       - "traefik.http.routers.${host['middleware']}-odoo-mail-upload-https.priority=110"
 
@@ -43,7 +43,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.rule=Host(`${host['name']}`) && PathPrefix(`/web/database/restore`)"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.service=odoo"
-      - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-unlimited"
       - "traefik.http.routers.${host['middleware']}-odoo-db-restore-https.priority=105"
 
@@ -51,7 +51,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.rule=Host(`${host['name']}`) && PathPrefix(`/documents/upload`)"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.service=odoo"
-      - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.middlewares=gzip,sslheader,hsts,mem-limit,limit-5gb"
       - "traefik.http.routers.${host['middleware']}-odoo-docs-upload-https.priority=100"
 
@@ -59,7 +59,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.rule=Host(`${host['name']}`) && PathPrefix(`/websocket`)"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.service=odoo-im"
-      - "traefik.http.routers.${host['middleware']}-odoo-im-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-im-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.middlewares=gzip,sslheader,hsts,mem-limit,limit"
       - "traefik.http.routers.${host['middleware']}-odoo-im-https.priority=75"
 
@@ -67,7 +67,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-https.rule=Host(`${host['name']}`)"
       - "traefik.http.routers.${host['middleware']}-odoo-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-https.service=odoo"
-      - "traefik.http.routers.${host['middleware']}-odoo-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-https.middlewares=gzip,sslheader,hsts,mem-limit,limit"
       - "traefik.http.routers.${host['middleware']}-odoo-https.priority=50"
 {%- else %}
@@ -75,7 +75,7 @@ services:
       - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.rule=Host(`${host['name']}`)"
       - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.entrypoints=websecure"
       - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.service=odoo"
-      - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.tls.certresolver=ssl-resolver"
+      - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.tls.certresolver=${host['resolver'] or 'tls-resolver'}"
       - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.middlewares=${host['redirect_middleware']}"
       - "traefik.http.routers.${host['middleware']}-odoo-redirect-https.priority=200"
 
