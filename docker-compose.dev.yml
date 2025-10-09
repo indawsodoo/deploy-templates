@@ -1,20 +1,31 @@
 services:
   web:
+    image: indaws/odoo:19.0
+    restart: always
     depends_on:
       - db
-    restart: none
     ports:
       - '8069:8069'
+    volumes:
+      - 'odoo-data:/var/lib/odoo'
+      - 'odoo-local:/home/odoo/.local'
+      - './config:/etc/odoo/base'
+      - './src/odoo:/home/odoo/odoo'
+      - './src/addons:/home/odoo/addons'
+      - './src/apt-packages:/home/odoo/apt-packages'
+      - './src/scripts:/home/odoo/scripts'
+      - './src/geoip:/home/odoo/geoip'
+      - './src/requirements:/home/odoo/requirements'
     environment:
-      - DEBUGPY=true
+      - DEBUGPY=false
       - PGUSER=odoo
       - PGPASSWORD=odoo
       - PGHOST=db
-      - PGDATABASE=postgres
+      - ODOO_WORKERS=0
     networks:
       - default
   db:
-    image: 'postgres:15.5'
+    image: 'postgres:16.10'
     command: postgres
     restart: none
     ports:
@@ -33,3 +44,7 @@ services:
       driver: json-file
       options:
         max-size: 20m
+volumes:
+  postgres-data: null
+  odoo-data: null
+  odoo-local: null
