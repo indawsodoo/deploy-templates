@@ -46,7 +46,7 @@ script:
       - |
         docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} -t -c "UPDATE ir_mail_server SET active = false"
       - |
-        docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} -t -c "INSERT INTO ir_mail_server (\"name\", \"smtp_host\", \"smtp_port\", \"smtp_authentication\", \"smtp_encryption\", \"active\", \"sequence\") VALUES ('disable outgoing servers', 'localhost', 0, '0', 'ssl', true, 0)"
+        docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} -t -c "INSERT INTO ir_mail_server (\"name\", \"smtp_host\", \"smtp_port\", \"smtp_encryption\", \"active\", \"sequence\") VALUES ('disable outgoing servers', 'localhost', 0, 'ssl', true, 0)"
       - |
         docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} -t -c "DELETE FROM ir_config_parameter WHERE key = 'database.enterprise_code'"
       - |
