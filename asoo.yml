@@ -23,6 +23,11 @@ server_setup:
     sudo: true
     commands:
       - 'apt -y install git curl zip unzip'
+  ctop:
+    sudo: true
+    commands:
+      - 'wget https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64 -O /usr/local/bin/ctop'
+      - 'chmod +x /usr/local/bin/ctop'
   aws:
     sudo: true
     commands:
