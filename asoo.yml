@@ -18,6 +18,11 @@ server_setup:
     sudo: true
     commands:
       - 'apt -y install curl'
+  timedate:
+    sudo: true
+    commands:
+      - 'timedatectl set-timezone Etc/UTC'
+      - 'timedatectl set-ntp true'
   zip:
     sudo: true
     commands:
