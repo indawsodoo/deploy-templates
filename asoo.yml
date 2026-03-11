@@ -13,6 +13,7 @@ deploy_info:
     - git@github.com:indawsodoo/asoo-tools.git
     - git@github.com:indawsodoo/indaws-odoo.git
     - git@github.com:indawsodoo/indaws-odoo-enterprise.git
+    - git@github.com:indawsodoo/indaws-tools.git
 
 server_setup:
   update:
