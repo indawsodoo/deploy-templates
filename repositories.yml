@@ -29,3 +29,8 @@ repositories:
   branch: '19.0'
   commit: 1a423c82def1e1d60d4fde342ca38c3ea6a0f527
   depth: 1
+- path: src/addons/indawsodoo-19.0/indaws-tools
+  url: git@github.com:indawsodoo/indaws-tools.git
+  branch: '19.0'
+  commit: f953b7f5534a1c68e9ebefbaf1503eba20345121
+  depth: 1
