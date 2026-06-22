@@ -2,12 +2,12 @@ repositories:
 - path: src/odoo
   url: https://github.com/odoo/odoo.git
   branch: '19.0'
-  commit: 0068038087e1805bb8a44d18935bd7b9b8c46051
+  commit: f7fb0a941d6bac39b7057db36f57be079559912c
   depth: 1
 - path: src/addons/indawsodoo-19.0/enterprise
   url: git@github.com:indawsodoo/enterprise.git
   branch: '19.0'
-  commit: f1e9646e9984ed667ab2ef22fb80640037851bae
+  commit: f42cfa7265ce32bd95f7f805cf4fb54d8b79cce1
   depth: 1
 - path: src/addons/design-themes-19.0
   url: https://github.com/odoo/design-themes.git
@@ -22,12 +22,12 @@ repositories:
 - path: src/addons/indawsodoo-19.0/indaws-odoo
   url: git@github.com:indawsodoo/indaws-odoo.git
   branch: '19.0'
-  commit: 00c2bb424b36b6a92269cfe866259c3704bf3cd6
+  commit: 0b549a0909575c3822144296cdf6c18752302f4b
   depth: 1
 - path: src/addons/indawsodoo-19.0/indaws-odoo-enterprise
   url: git@github.com:indawsodoo/indaws-odoo-enterprise.git
   branch: '19.0'
-  commit: 1a423c82def1e1d60d4fde342ca38c3ea6a0f527
+  commit: bb3f816f6bdf6170af20a919206fcb11999d78ef
   depth: 1
 - path: src/addons/indawsodoo-19.0/indaws-tools
   url: git@github.com:indawsodoo/indaws-tools.git
