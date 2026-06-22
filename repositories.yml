@@ -262,5 +262,5 @@ repositories:
 - path: src/addons/indawsodoo-18.0/indaws-tools
   url: git@github.com:indawsodoo/indaws-tools.git
   branch: '18.0'
-  commit: 2693ac1433353d4c196b3ff8e45499b7baae93f6
+  commit: 62e9a191a8c955d495c0c2c2dee9b0a678ba605a
   depth: 1
