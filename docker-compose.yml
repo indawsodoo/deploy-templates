@@ -21,6 +21,14 @@ services:
       - PGUSER=odoo
       - PGPASSWORD=${password('postgres')}
       - PGHOST=db
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8069/web/health', timeout=5).status == 200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    labels:
+      dyn.autoheal: "true"
     networks:
       - default
     tty: true
@@ -40,6 +48,12 @@ services:
       - POSTGRES_DB=postgres
       - PGPASS=${password('postgres')}
       - PGDATA=/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     volumes:
       - 'postgres-data:/var/lib/postgresql/data/pgdata'
     networks:
