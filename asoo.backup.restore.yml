@@ -1,34 +1,154 @@
+# Restore: streams the backup back into place instead of staging it on disk.
+#
+# The old version wrote the filestore THREE times -- inside the downloaded
+# zip, unzipped beside it, and once more into the volume through
+# `docker compose cp`. On espacio-organico that is a 41 GiB peak; restoring
+# copc with its filestore would ask for ~260 GiB free. Now the archive is
+# piped straight into the container and only the dump lands on disk, because
+# pg_restore needs a real file to read.
+#
+# BOTH FORMATS ARE HANDLED. Environments keep their last ten backups, so one
+# that has just migrated still has `.zip` archives in the bucket. The branch
+# below keys off the object's own extension, which the manager already passes
+# as {object_short_key} -- nothing had to change on its side.
+#
+# The archive carries no root directory (see the create template), so -C
+# alone decides where the filestore lands, and a backup taken from `master`
+# restores into `staging` with no renaming.
+#
+# WHY tar INSIDE THE CONTAINER AND NOT `docker cp -`: the archive is two tars
+# concatenated, and `docker cp` stops at the first end-of-archive marker --
+# it would restore the dump and silently drop the whole filestore. GNU tar
+# reads past it with -i (--ignore-zeros).
+#
+# `docker cp -` also cannot exclude members, and neither can tar in a single
+# pass, so dump.pgc is unpacked alongside the filestore and removed once
+# pg_restore has read it. That is deliberate and it is what keeps the HOST at
+# zero bytes: the dump only ever exists inside the volume, whose space is
+# already accounted for. dump.pgc is written FIRST by the create template, so
+# it is on disk before the filestore finishes unpacking, and no filestore
+# entry can collide with that name -- they are SHA1 digests nested in
+# 2-character directories.
+#
+# THE ORDER IS DESTRUCTIVE ON PURPOSE. The manager destroys containers and
+# volumes before this template runs, and that is what frees the old filestore
+# and database so the new ones reuse the space. Once a restore starts, the
+# previous contents are gone -- an accepted trade-off, since restoring is an
+# exceptional operation. DROP DATABASE IF EXISTS ... WITH (FORCE) makes the
+# step idempotent either way: it tolerates a missing database and evicts any
+# session still attached to an existing one instead of blocking forever.
+#
+# Same two syntax rules as the create template: no literal { } braces (the
+# manager renders with str.format()), and no shell built-in as the first word
+# of a `sudo: true` command (fabric prefixes `sudo -S -p '...'`), which is why
+# pipelines run as `bash -o pipefail -c '...'`.
 script:
-  download:
-    description: 'Downloading backup file'
+  prepare:
+    description: 'Preparing restore target'
     sudo: true
     commands:
       - 'rm -fr {bck_workspace}*'
+      - 'mkdir -p {bck_dir}/{object_short}'
+  storage_config:
+    description: 'Configuring storage client'
+    sudo: true
+    commands:
       - 'aws configure set endpoint_url {STORAGE_ENDPOINT}'
       - 'aws configure set aws_access_key_id {STORAGE_ACCESS_KEY}'
       - 'aws configure set aws_secret_access_key {STORAGE_SECRET_KEY}'
-      - 'aws s3 cp s3://{storage_name}/{object_key} {bck_dir}/{object_short_key} --region {STORAGE_REGION}'
-  unzip:
-    description: 'Decompressing backup'
+  fetch:
+    description: 'Downloading backup and restoring filestore'
     sudo: true
     commands:
-      - 'unzip -o {bck_dir}/{object_short_key} -d {bck_dir}/{object_short} &>/dev/null'
-      - 'rm -fr {bck_dir}/{object_short_key}'
-  pgdump:
-    description: 'Restoring PostgreSQL dump'
+      # The volume is brand new after the containers were destroyed, so the
+      # filestore directory does not exist yet -- `docker compose cp` used to
+      # create that last level for us, tar does not.
+      #
+      # LEGACY (.zip): download, unzip, copy -- untouched, so old archives
+      # keep restoring exactly as they always have.
+      # CURRENT (.tgz): the whole archive is piped into the container in ONE
+      # pass, host disk never holds a copy.
+      #
+      # ================= DATABASE ONLY? =================================
+      # FILESTORE=yes -> restore database + filestore (default)
+      # FILESTORE=no  -> restore ONLY the database, even when the archive
+      #                  carries a filestore: tar is then told to extract
+      #                  that single member and to ignore the rest.
+      # Same switch, same first word, as the create template. Do NOT reach
+      # for `--occurrence=1` to abort the download early: tar would exit as
+      # soon as it found the member, aws would die of SIGPIPE, and pipefail
+      # would report a successful restore as failed.
+      # ==================================================================
+      - "bash -o pipefail -c 'FILESTORE=yes;
+           if test $FILESTORE = yes; then MEMBERS=; else MEMBERS=dump.pgc; fi;
+           docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
+           mkdir -p /var/lib/odoo/filestore/{database}
+           && case {object_short_key} in
+                *.zip)
+                  aws s3 cp s3://{storage_name}/{object_key} {bck_dir}/{object_short_key} --region {STORAGE_REGION}
+                  && unzip -o {bck_dir}/{object_short_key} -d {bck_dir}/{object_short} > /dev/null
+                  && rm -fr {bck_dir}/{object_short_key}
+                  && docker-compose -f {branch_workspace}/docker-compose.yml cp
+                       {bck_dir}/{object_short}/filestore/. web:/var/lib/odoo/filestore/{database}
+                  ;;
+                *)
+                  aws s3 cp s3://{storage_name}/{object_key} - --region {STORAGE_REGION}
+                  | gzip -dc
+                  | docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
+                      tar -x -i -f - -C /var/lib/odoo/filestore/{database} $MEMBERS
+                  ;;
+              esac'"
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u 0 web
+           chown -R odoo:odoo /var/lib/odoo/filestore/{database}'
+  pgrestore:
+    description: 'Restoring PostgreSQL database'
     sudo: true
     commands:
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d postgres -t -c "CREATE DATABASE \"{database}\""'
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} < {bck_dir}/{object_short}/dump.sql'
-      - 'rm -fr {bck_dir}/{object_short}/dump.sql'
-  filestore:
-    description: 'Restoring Odoo filestore'
-    sudo: true
-    commands:
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -u odoo web bash -c "mkdir -p /var/lib/odoo/filestore"'
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml cp {bck_dir}/{object_short}/filestore/. web:/var/lib/odoo/filestore/{database}'
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u 0 web chown -R odoo:odoo /var/lib/odoo/filestore/{database}'
-  prepare:
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+           psql -U odoo -d postgres -t -c "DROP DATABASE IF EXISTS \"{database}\" WITH (FORCE)"'
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+           psql -U odoo -d postgres -t -c "CREATE DATABASE \"{database}\""'
+      # Exactly what Odoo does when IT creates a database (odoo/service/db.py).
+      # That ALTER is a white lie -- unaccent depends on external data, so
+      # PostgreSQL rightly refuses to call it immutable -- but without it no
+      # index over unaccent(...) can be created, and Odoo has two of them
+      # (mail_blacklist.email, mail_canned_response.source).
+      #
+      # It has to be repeated here because pg_dump does NOT carry it: the
+      # function belongs to an extension, and ALTERs on extension members are
+      # not dumped. A database created by a bare CREATE DATABASE, as above,
+      # therefore starts without it and pg_restore fails those two indexes
+      # with "functions in index expression must be marked IMMUTABLE".
+      #
+      # This is not new, only newly visible: the plain-SQL dump carried the
+      # same CREATE INDEX statements and psql -- which does not stop, nor even
+      # fail, on error -- dropped both indexes silently and reported success.
+      # pg_restore exits 1 when it ignores errors, and pipefail surfaces it.
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+           psql -U odoo -d {database} -t -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;
+             CREATE EXTENSION IF NOT EXISTS unaccent;
+             ALTER FUNCTION unaccent(text) IMMUTABLE"'
+      # No -j on purpose: parallel jobs are faster but each one is another
+      # process and another connection, and this template runs on every VPS
+      # whatever its size. Predictable footprint over speed.
+      - "bash -o pipefail -c 'case {object_short_key} in
+                *.zip)
+                  docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+                    psql -U odoo -d {database} < {bck_dir}/{object_short}/dump.sql
+                  ;;
+                *)
+                  docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
+                    cat /var/lib/odoo/filestore/{database}/dump.pgc
+                  | docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+                      pg_restore -U odoo -d {database} --no-owner
+                  ;;
+              esac'"
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
+           rm -f /var/lib/odoo/filestore/{database}/dump.pgc'
+  # NOT the `odoo neutralize` command the other branches use: it
+  # did not exist yet in this Odoo version, so the same work is done
+  # by hand in SQL. Kept exactly as it was.
+  neutralize:
     description: 'Database test mode'
     stages:
       - 'development'
@@ -56,7 +176,7 @@ script:
       - |
         docker-compose -f {branch_workspace}/docker-compose.yml exec -T db psql -U odoo -d {database} -t -c "UPDATE ir_config_parameter SET value = 'trial' WHERE key = 'database.expiration_reason'"
   clean:
-    description: 'Cleaning leftovers from the backup'
+    description: 'Cleaning up leftovers'
     sudo: true
     commands:
       - 'rm -dfr {bck_dir}/{object_short}'
