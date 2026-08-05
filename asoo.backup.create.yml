@@ -1,3 +1,48 @@
+# Backup: streams the environment straight to object storage.
+#
+# The previous version wrote three copies to the VPS disk before uploading
+# anything: the plain SQL dump, a full copy of the filestore, and then a zip
+# of both. On espacio-organico that peaked at 41 GiB to produce a 17 GB
+# backup; on copc with the filestore enabled it would need 180 GiB on a
+# server that already holds 124. Now only the dump touches the disk -- it has
+# to, because pg_restore reads it as a file -- and the filestore goes from
+# the container to the bucket through a pipe.
+#
+# THE ARCHIVE IS TWO TARS CONCATENATED. A tar ends in two zero blocks, so
+# gluing two together is still a valid tar as long as the reader is told not
+# to stop at the first one -- hence `tar -xi` (--ignore-zeros) on the restore
+# side. NOTE: `docker cp -` cannot do that, it stops at the first end marker,
+# which is why the restore unpacks with tar inside the container instead.
+#
+#   dump.pgc            <- tar(1), here on the host
+#   ./00/00a1b2...      <- docker cp, straight out of the container
+#   ./a1/a1ff9e...
+#
+# THE TRAILING `/.` IS NOT A TYPO. `docker cp <c>:/path/<db> -` makes <db>
+# the archive's root directory, which would bake the SOURCE database name
+# into every backup and break restores into a differently-named database.
+# `<db>/. -` emits the CONTENTS instead, so the archive is identical whatever
+# database produced it.
+#
+# ONE OBJECT PER BACKUP, deliberately: the manager counts storage OBJECTS to
+# apply bck_limit, and a restore gives up unless exactly one object matches
+# the name. `.tgz` and not `.tar.gz`, because the manager runs
+# os.path.splitext() on the object name and the double extension would leave
+# a stray `.tar` behind.
+#
+# TWO SYNTAX RULES FOR EVERY COMMAND HERE:
+#   * No literal { } braces. The manager renders these commands with
+#     str.format(), so a shell brace group would be read as a placeholder and
+#     blow up before anything runs. Use ( ) subshells instead.
+#   * A shell built-in cannot be the first word of a `sudo: true` command:
+#     fabric builds `sudo -S -p '...' <command>`, so `set -o pipefail; ...`
+#     would look for a program called `set`. Pipelines therefore run as
+#     `bash -o pipefail -c '...'`, which also puts the WHOLE pipeline under
+#     sudo instead of just its first stage.
+#
+# pipefail is not decoration: fabric only inspects the last exit code of a
+# pipeline, so without it a pg_dump or a docker cp that died halfway while
+# the upload succeeded would be reported as a perfectly good backup.
 ensure_start: true
 script:
   workspace:
@@ -7,34 +52,60 @@ script:
       - 'rm -fr {bck_workspace}*'
       - 'mkdir -p {bck_workspace}'
   pgdump:
-    description: 'Creating PostgreSQL dump'
+    description: 'Dumping PostgreSQL database'
     sudo: true
     commands:
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db pg_dump -U odoo -d {database} --no-owner > {bck_workspace}/dump.sql'
-  filestore:
-    description: 'Copying Odoo filestore'
-    sudo: true
-    commands:
-      - 'docker-compose -f {branch_workspace}/docker-compose.yml cp web:/var/lib/odoo/filestore/{database} {bck_workspace}/filestore'
-  zip:
-    description: 'Creating zip file'
-    commands:
-      - 'su -c "cd {bck_dir}/{bck_name} && zip -r ../{bck_name}.zip ./ &>/dev/null"'
-  rm_workspace:
-    description: 'Removing backup workspace'
-    sudo: true
-    commands:
-      - 'rm -dfr {bck_workspace}'
-  cloudflare_r2_upload:
-    description: 'Uploading to Cloudflare R2'
+      # -Fc so the restore can use pg_restore, and -Z6 so this file -- the
+      # only thing that touches the disk -- stays around a fifteenth of the
+      # plain SQL. No pipe here, so the exit code is already pg_dump's.
+      - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
+           pg_dump -U odoo -d {database} --no-owner -Fc -Z6 > {bck_workspace}/dump.pgc'
+  storage_config:
+    description: 'Configuring storage client'
     sudo: true
     commands:
       - 'aws configure set endpoint_url {STORAGE_ENDPOINT}'
       - 'aws configure set aws_access_key_id {STORAGE_ACCESS_KEY}'
       - 'aws configure set aws_secret_access_key {STORAGE_SECRET_KEY}'
-      - 'aws s3 cp {bck_dir}/{bck_name}.zip s3://{storage_name}/{STORAGE_BCK_PATH}/{branch_name}/{bck_name}.zip --region {STORAGE_REGION}'
-  rm_backup:
-    description: 'Cleaning local backup file'
+      # Reading from stdin the CLI cannot seek, so it holds each part in
+      # MEMORY while it uploads. At the defaults that is 10 parts of 8 MB,
+      # which also caps the whole upload at 80 GB -- copc with its filestore
+      # would not fit. 64 MB parts raise the ceiling to 640 GB, and 4
+      # concurrent requests keep resident memory near 256 MB instead of 640.
+      - 'aws configure set default.s3.multipart_chunksize 64MB'
+      - 'aws configure set default.s3.max_concurrent_requests 4'
+  upload:
+    description: 'Packing filestore and uploading backup'
     sudo: true
     commands:
-      - 'rm -dfr {bck_dir}/{bck_name}.zip'
+      # ================= DATABASE ONLY? =================================
+      # FILESTORE=yes -> database + filestore (default)
+      # FILESTORE=no  -> database only, nothing else changes
+      #
+      # It is the FIRST word of the command below. It has to be a variable
+      # and not a commented-out line: the filestore lives inside a quoted
+      # YAML scalar, and YAML has no comments inside a scalar -- a `#` there
+      # would just be one more character of the shell command. Before this
+      # template, environments that skipped the filestore (copc, gironina)
+      # did it by deleting the whole `filestore:` step; that no longer works
+      # now that the copy is a stage of the pipeline.
+      #
+      # The `if` does not weaken pipefail: it returns 0 when the branch is
+      # not taken, and still propagates a failing docker cp.
+      # ==================================================================
+      #
+      # gzip -1, not -6: the filestore is mostly PDF and JPG that are already
+      # compressed, so higher levels burn CPU for about 1% more. The dump is
+      # already compressed by pg_dump -Z6, so this pass barely touches it.
+      - "bash -o pipefail -c 'FILESTORE=yes;
+           ( tar -cf - -C {bck_workspace} dump.pgc;
+             if test $FILESTORE = yes;
+             then docker cp $(docker-compose -f {branch_workspace}/docker-compose.yml ps -q web):/var/lib/odoo/filestore/{database}/. -;
+             fi )
+           | gzip -1
+           | aws s3 cp - s3://{storage_name}/{STORAGE_BCK_PATH}/{branch_name}/{bck_name}.tgz --region {STORAGE_REGION}'"
+  rm_workspace:
+    description: 'Removing backup workspace'
+    sudo: true
+    commands:
+      - 'rm -dfr {bck_workspace}'
