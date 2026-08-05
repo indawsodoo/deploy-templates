@@ -17,7 +17,7 @@ services:
       - PGHOST=db
       - PGDATABASE=postgres
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8069/web/health', timeout=5).status == 200 else 1)\""]
+      test: ["CMD-SHELL", "python3 -c \"import http.client,sys; c=http.client.HTTPConnection('localhost',8069,timeout=5); c.request('GET','/web/health?db_server_status=1'); s=c.getresponse().status; print(s); sys.exit(0 if s==200 else 1)\" 2>/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3
