@@ -22,6 +22,27 @@ services:
       - PGPASSWORD=odoo
       - PGHOST=db
       - PGDATABASE=postgres
+    healthcheck:
+      # Odoo grew /web/health in 15.0, so on this version probing it would 404 on
+      # every check, leaving the container unhealthy for good -- and, once the
+      # healer enforces, restarting in a loop.
+      #
+      # JSON-RPC `common.version` is the probe that predates it, and it is the
+      # same one the Gatus status page uses for these versions, so both agree on
+      # what "up" means. It needs no authentication and creates no session:
+      # measured on a real Odoo 14, 20 probes left 0 session files, where 20
+      # requests to /web/login left 20 -- about 2,880 a day at this interval.
+      #
+      # The check asserts on result.server_version rather than on the status
+      # code: a proxy or an error page can return 200 with anything, and only a
+      # real Odoo returns that field.
+      test: ["CMD-SHELL", "python3 -c \"import json, urllib.request as u; r = u.urlopen(u.Request('http://localhost:8069/jsonrpc', data=b'{\\\"jsonrpc\\\":\\\"2.0\\\",\\\"method\\\":\\\"call\\\",\\\"params\\\":{\\\"service\\\":\\\"common\\\",\\\"method\\\":\\\"version\\\",\\\"args\\\":[]},\\\"id\\\":1}', headers={'Content-Type': 'application/json'}), timeout=5); assert json.load(r)['result']['server_version']\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    labels:
+      dyn.autoheal: "true"
     networks:
       - default
     tty: true
@@ -41,6 +62,12 @@ services:
       - POSTGRES_DB=postgres
       - PGPASS=odoo
       - PGDATA=/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     volumes:
       - 'postgres-data:/var/lib/postgresql/data/pgdata'
     networks:
