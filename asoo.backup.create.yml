@@ -4,9 +4,12 @@
 # anything: the plain SQL dump, a full copy of the filestore, and then a zip
 # of both. On espacio-organico that peaked at 41 GiB to produce a 17 GB
 # backup; on copc with the filestore enabled it would need 180 GiB on a
-# server that already holds 124. Now only the dump touches the disk -- it has
-# to, because pg_restore reads it as a file -- and the filestore goes from
-# the container to the bucket through a pipe.
+# server that already holds 124. Now only the dump touches the disk, and it
+# has to: every tar member carries its size in a header written BEFORE its
+# bytes, and a streaming pg_dump does not know that size until it has
+# finished. The filestore has no such problem -- `docker cp` hands it over
+# as a finished tar -- so it goes from the container to the bucket through
+# a pipe.
 #
 # THE ARCHIVE IS TWO TARS CONCATENATED. A tar ends in two zero blocks, so
 # gluing two together is still a valid tar as long as the reader is told not
