@@ -4,8 +4,10 @@
 # zip, unzipped beside it, and once more into the volume through
 # `docker compose cp`. On espacio-organico that is a 41 GiB peak; restoring
 # copc with its filestore would ask for ~260 GiB free. Now the archive is
-# piped straight into the container and only the dump lands on disk, because
-# pg_restore needs a real file to read.
+# piped straight into the container, and the dump rides along with it: a
+# single pass cannot separate the two (see below), so dump.pgc is unpacked
+# beside the filestore and deleted as soon as pg_restore has read it -- from
+# a pipe, as it happens, which is all pg_restore ever needed.
 #
 # BOTH FORMATS ARE HANDLED. Environments keep their last ten backups, so one
 # that has just migrated still has `.zip` archives in the bucket. The branch
