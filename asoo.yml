@@ -69,6 +69,12 @@ server_setup:
     sudo: true
     commands:
       - 'chmod 757 /opt/'
+  dyn-autoheal:
+    sudo: true
+    commands:
+      - 'curl -fsSL https://github.com/dynapps-es/docker-autoheal/releases/download/v0.1.1/install.sh -o /tmp/dyn-autoheal-install.sh'
+      - 'sh /tmp/dyn-autoheal-install.sh --from-url https://github.com/dynapps-es/docker-autoheal/releases/download/v0.1.1 --version v0.1.1'
+      - 'rm -f /tmp/dyn-autoheal-install.sh'
 
 environment_info:
   application: 'odoo'
