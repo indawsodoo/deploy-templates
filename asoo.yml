@@ -54,6 +54,14 @@ server_setup:
       - 'sh /tmp/dyn-autoheal-install.sh --from-url https://github.com/dynapps-es/docker-autoheal/releases/latest/download'
       - 'rm -f /tmp/dyn-autoheal-install.sh'
 
+  oom-protection:
+    sudo: true
+    commands:
+      - 'for u in docker containerd ssh; do mkdir -p /etc/systemd/system/$u.service.d; printf ''%s\n'' ''[Service]'' ''OOMScoreAdjust=-1000'' > /etc/systemd/system/$u.service.d/oom.conf; done'
+      - 'printf ''%s\n'' ''[Unit]'' ''Description=Protect PID 1 from the OOM killer'' ''DefaultDependencies=no'' ''After=sysinit.target'' '''' ''[Service]'' ''Type=oneshot'' ''ExecStart=/bin/sh -c "echo -1000 > /proc/1/oom_score_adj"'' ''RemainAfterExit=yes'' '''' ''[Install]'' ''WantedBy=multi-user.target'' > /etc/systemd/system/oom-guard-init.service'
+      - 'systemctl daemon-reload'
+      - 'systemctl enable --now oom-guard-init.service'
+      - 'for u in docker containerd ssh; do p=$(systemctl show -p MainPID --value $u.service 2>/dev/null); if [ -n "$p" ] && [ "$p" != "0" ]; then echo -1000 > /proc/$p/oom_score_adj; fi; done'
 environment_info:
   application: 'odoo'
   application_version: '14.0'
