@@ -76,10 +76,42 @@ script:
       # FILESTORE=no  -> restore ONLY the database, even when the archive
       #                  carries a filestore: tar is then told to extract
       #                  that single member and to ignore the rest.
-      # Same switch, same first word, as the create template. Do NOT reach
-      # for `--occurrence=1` to abort the download early: tar would exit as
-      # soon as it found the member, aws would die of SIGPIPE, and pipefail
-      # would report a successful restore as failed.
+      # Same switch, same first word, as the create template.
+      #
+      # `--occurrence=1` DOES matter here for FILESTORE=no on a large
+      # environment: without it, tar's `-i` (--ignore-zeros) keeps reading
+      # past dump.pgc all the way through the whole filestore tar behind it,
+      # even though none of it gets written -- minutes of extra streaming
+      # through aws | gzip | docker exec with nothing to show for it, and
+      # more time for a transient network hiccup to land mid-stream. With
+      # `--occurrence=1`, tar stops the moment it has dump.pgc.
+      #
+      # That early stop is exactly what used to be avoided: tar closing its
+      # end of the pipe makes aws exit on SIGPIPE, and pipefail -- which
+      # reports the rightmost command that failed -- would call the whole
+      # step failed even though tar got everything it needed. The fix is to
+      # stop trusting pipefail for this one pipe: `set +o pipefail` around
+      # it, grab tar's own `$?` right after (bash gives the LAST command's
+      # exit code when pipefail is off, ignoring what happened upstream),
+      # then `set -o pipefail` back on before anything else runs.
+      #
+      # DO NOT reach for PIPESTATUS array indexing (dollar sign, brace,
+      # variable name, bracket, brace) instead: this whole file is rendered
+      # through TWO passes before it ever reaches a shell, and the first one
+      # is NOT str.format() -- it is a Jinja2 template whose variable
+      # delimiters were reconfigured, in cloud_file.py's cloud.file.render,
+      # to start with a literal dollar sign immediately followed by a brace
+      # (that exact two-character sequence -- yes, also inside comments like
+      # this one, which is why this paragraph spells it out instead of
+      # writing it) and end with a closing brace. Any such sequence in this
+      # file is parsed as a Jinja2 expression at that first pass, and a
+      # PIPESTATUS array index is not valid Jinja2 -- it fails to even
+      # compile, with "Failed to load template" and the raw file dumped
+      # back. str.format() (the "no literal { } braces" rule above) only
+      # runs LATER, per command, on whatever that first pass already let
+      # through. A bare $VAR with no brace right after the dollar sign --
+      # like $FILESTORE, $MEMBERS, $TAR_RC below -- never triggers either
+      # pass.
       # ==================================================================
       - "bash -o pipefail -c 'FILESTORE=yes;
            if test $FILESTORE = yes; then MEMBERS=; else MEMBERS=dump.pgc; fi;
@@ -94,10 +126,14 @@ script:
                        {bck_dir}/{object_short}/filestore/. web:/var/lib/odoo/filestore/{database}
                   ;;
                 *)
+                  set +o pipefail;
                   aws s3 cp s3://{storage_name}/{object_key} - --region {STORAGE_REGION}
                   | gzip -dc
                   | docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
-                      tar -x -i -f - -C /var/lib/odoo/filestore/{database} $MEMBERS
+                      tar -x -i --occurrence=1 -f - -C /var/lib/odoo/filestore/{database} $MEMBERS;
+                  TAR_RC=$?;
+                  set -o pipefail;
+                  test $TAR_RC -eq 0
                   ;;
               esac'"
       - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u 0 web
@@ -126,6 +162,23 @@ script:
       # same CREATE INDEX statements and psql -- which does not stop, nor even
       # fail, on error -- dropped both indexes silently and reported success.
       # pg_restore exits 1 when it ignores errors, and pipefail surfaces it.
+      #
+      # DO NOT remove this pre-step to "fix" a restore that fails here with
+      # "function unaccent already exists with same argument types" (CREATE
+      # FUNCTION public.unaccent(text)). Checked vanilla Odoo's own
+      # odoo/service/db.py across every version this repo templates (12.0
+      # through 19.0, at the exact pinned commits these branches run): all
+      # of them do exactly this and nothing else -- extension-owned
+      # unaccent(text) in public, plus this ALTER. If a specific database's
+      # dump instead carries a standalone, already-IMMUTABLE
+      # public.unaccent(text) wrapper backed by its own schema (pg_dump
+      # emits that as a plain CREATE FUNCTION, no OR REPLACE, so it
+      # collides with what this pre-step just created), that database's
+      # unaccent was set up by something other than Odoo itself -- a
+      # migration, a partner tool, a manual fix. That is a property of that
+      # one environment, not of this template: dropping the pre-step here
+      # would fix that one case and break unaccent(...) indexing for every
+      # normal restore. Handle it per-environment instead.
       - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
            psql -U odoo -d {database} -t -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;
              CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -133,6 +186,13 @@ script:
       # No -j on purpose: parallel jobs are faster but each one is another
       # process and another connection, and this template runs on every VPS
       # whatever its size. Predictable footprint over speed.
+      #
+      # --exit-on-error: without it, pg_restore swallows a failing statement
+      # and keeps going, so one real problem (e.g. a corrupt/truncated
+      # dump.pgc) surfaces as a wall of unrelated-looking cascade errors --
+      # broken PKs, then every FK that pointed at them -- instead of the one
+      # statement that actually broke. Stopping at the first error makes the
+      # real cause the only thing in stderr.
       - "bash -o pipefail -c 'case {object_short_key} in
                 *.zip)
                   docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
@@ -142,7 +202,7 @@ script:
                   docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
                     cat /var/lib/odoo/filestore/{database}/dump.pgc
                   | docker-compose -f {branch_workspace}/docker-compose.yml exec -T db
-                      pg_restore -U odoo -d {database} --no-owner
+                      pg_restore -U odoo -d {database} --no-owner --exit-on-error
                   ;;
               esac'"
       - 'docker-compose -f {branch_workspace}/docker-compose.yml exec -T -u odoo web
